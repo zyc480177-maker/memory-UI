@@ -18,6 +18,7 @@ import Analytics from './pages/Analytics';
 import QuickActions from './pages/QuickActions';
 import Notifications from './pages/Notifications';
 import BiographyBook from './pages/BiographyBook';
+import Writing from './pages/Writing';
 
 function AppContent() {
   const location = useLocation();
@@ -43,6 +44,7 @@ function AppContent() {
           <Route path="/preview" element={<Preview />} />
           <Route path="/notifications" element={<Notifications />} />
           <Route path="/biography-book" element={<BiographyBook />} />
+          <Route path="/writing" element={<Writing />} />
         </Routes>
       </main>
       {!isAuthFlow && <MobileNav />}

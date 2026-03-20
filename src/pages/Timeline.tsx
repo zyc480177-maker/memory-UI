@@ -108,8 +108,8 @@ export default function Timeline() {
             <div className="relative z-10">
               <p className="text-on-surface-variant mb-8 text-lg">点击下方按钮，我们将为您珍藏的一生回忆，汇集成一卷流传千古的数字传记。</p>
               <Link to="/biography-book" className="h-14 px-10 bg-[#8B4513] hover:bg-[#6c2f00] text-white rounded-full flex items-center justify-center gap-3 mx-auto transition-all shadow-lg active:scale-95 group no-underline">
-                <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>menu_book</span>
-                <span className="text-lg font-bold tracking-widest">生成我的传记</span>
+                <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>auto_stories</span>
+                <span className="text-lg font-bold tracking-widest">编撰成册</span>
               </Link>
             </div>
             <div className="absolute -bottom-10 -right-10 opacity-5 pointer-events-none">
@@ -187,16 +187,20 @@ export default function Timeline() {
                       新增档案内容
                     </h4>
                     <p className="text-xs text-stone-500 mb-4">直接为此章节添加新的回忆点，内容将同步保存至档案库。</p>
-                    <div className="flex gap-2">
-                      <button className="flex-1 py-2 bg-stone-100 hover:bg-stone-200 rounded-lg text-[10px] font-bold transition-colors flex flex-col items-center gap-1">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      <button className="py-2 bg-stone-100 hover:bg-stone-200 rounded-lg text-[10px] font-bold transition-colors flex flex-col items-center gap-1">
                         <span className="material-symbols-outlined text-sm">mic</span>
                         口述
                       </button>
-                      <button className="flex-1 py-2 bg-stone-100 hover:bg-stone-200 rounded-lg text-[10px] font-bold transition-colors flex flex-col items-center gap-1">
+                      <button className="py-2 bg-stone-100 hover:bg-stone-200 rounded-lg text-[10px] font-bold transition-colors flex flex-col items-center gap-1">
                         <span className="material-symbols-outlined text-sm">photo_camera</span>
                         拍照
                       </button>
-                      <button className="flex-1 py-2 bg-stone-100 hover:bg-stone-200 rounded-lg text-[10px] font-bold transition-colors flex flex-col items-center gap-1">
+                      <button className="py-2 bg-stone-100 hover:bg-stone-200 rounded-lg text-[10px] font-bold transition-colors flex flex-col items-center gap-1">
+                        <span className="material-symbols-outlined text-sm">videocam</span>
+                        视频
+                      </button>
+                      <button className="py-2 bg-stone-100 hover:bg-stone-200 rounded-lg text-[10px] font-bold transition-colors flex flex-col items-center gap-1">
                         <span className="material-symbols-outlined text-sm">edit_note</span>
                         文字
                       </button>

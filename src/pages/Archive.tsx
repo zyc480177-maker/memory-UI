@@ -35,9 +35,9 @@ export default function Archive() {
             <span>整理建议</span>
           </button>
         </nav>
-        <Link to="/timeline" className="w-full bg-gradient-to-br from-primary to-[#8B4513] text-white py-4 rounded-xl flex items-center justify-center gap-2 shadow-lg hover:opacity-90 active:scale-[0.98] transition-all no-underline">
-          <span className="material-symbols-outlined">auto_stories</span>
-          <span className="font-bold">前往岁月长歌</span>
+        <Link to="/writing" className="w-full bg-gradient-to-br from-primary to-[#8B4513] text-white py-4 rounded-xl flex items-center justify-center gap-2 shadow-lg hover:opacity-90 active:scale-[0.98] transition-all no-underline">
+          <span className="material-symbols-outlined">history_edu</span>
+          <span className="font-bold">续写华章</span>
         </Link>
       </aside>
 

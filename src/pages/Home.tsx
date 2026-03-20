@@ -53,7 +53,7 @@ export default function Home() {
             </div>
 
             <p className="text-sm text-on-surface-variant italic mb-6">“笔耕不辍，岁月留香。距离完成整本传记还剩四个章节。”</p>
-            <Link to="/refinement" className="block w-full py-4 bg-gradient-to-br from-primary to-[#6C2F00] text-white rounded-xl font-bold tracking-wide text-center active:scale-95 transition-transform shadow-lg shadow-primary/20">
+            <Link to="/writing" className="block w-full py-4 bg-gradient-to-br from-primary to-[#6C2F00] text-white rounded-xl font-bold tracking-wide text-center active:scale-95 transition-transform shadow-lg shadow-primary/20 no-underline">
               继续编写
             </Link>
           </section>
