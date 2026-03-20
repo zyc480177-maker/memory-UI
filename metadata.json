@@ -1,0 +1,5 @@
+{
+  "name": "人生传记 - Heirloom",
+  "description": "一款充满怀旧感、社论感和档案感的个人传记数字化应用。通过 AI 协助，将岁月的浮光掠影凝结成册，记录生命中的每一个珍贵瞬间。",
+  "requestFramePermissions": ["camera", "microphone"]
+}

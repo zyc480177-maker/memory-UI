@@ -1,0 +1,96 @@
+@import "tailwindcss";
+
+@theme {
+  --font-headline: "Noto Serif SC", serif;
+  --font-body: "Noto Serif SC", serif;
+  --font-label: "Work Sans", sans-serif;
+
+  --color-primary: #8B4513;
+  --color-primary-container: #8B4513;
+  --color-on-primary: #ffffff;
+  --color-on-primary-container: #ffc29f;
+  
+  --color-secondary: #5C7A4E;
+  --color-secondary-container: #c8eab5;
+  --color-on-secondary: #ffffff;
+  --color-on-secondary-container: #4d6a40;
+
+  --color-tertiary: #004662;
+  --color-tertiary-container: #005f83;
+  --color-on-tertiary: #ffffff;
+  --color-on-tertiary-container: #97d7ff;
+
+  --color-surface: #F5F0E8;
+  --color-surface-bright: #F5F0E8;
+  --color-surface-dim: #dbdad4;
+  --color-surface-variant: #e3e3dc;
+  --color-on-surface: #1b1c18;
+  --color-on-surface-variant: #54433a;
+
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #efeee7;
+  --color-surface-container: #efeee7;
+  --color-surface-container-high: #e9e8e2;
+  --color-surface-container-highest: #e3e3dc;
+
+  --color-outline: #877369;
+  --color-outline-variant: #dac2b6;
+
+  --color-background: #F5F0E8;
+  --color-on-background: #1b1c18;
+
+  --color-error: #ba1a1a;
+  --color-error-container: #ffdad6;
+  --color-on-error: #ffffff;
+  --color-on-error-container: #93000a;
+}
+
+@layer base {
+  body {
+    @apply font-body bg-surface text-on-surface antialiased;
+  }
+}
+
+@layer utilities {
+  .parchment-texture {
+    background-color: #F5F0E8;
+    background-image: radial-gradient(#8B4513 0.5px, transparent 0.5px);
+    background-size: 24px 24px;
+    background-position: center;
+    opacity: 0.03;
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+  .retro-border {
+    border: 12px solid #ffffff;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  }
+  .writing-surface {
+    border-bottom: 1.5px solid rgba(139, 69, 19, 0.15);
+    transition: border-color 0.3s ease;
+  }
+  .writing-surface:focus {
+    border-bottom: 2px solid #8B4513;
+    outline: none;
+  }
+  .writing-well {
+    position: relative;
+  }
+  .writing-well::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background-color: rgba(139, 69, 19, 0.1);
+  }
+  .book-shadow {
+    box-shadow: 15px 15px 30px rgba(139, 69, 19, 0.1);
+  }
+  .timeline-line {
+    background: linear-gradient(to bottom, transparent, #8B4513 15%, #8B4513 85%, transparent);
+    width: 2px;
+  }
+}
