@@ -1,6 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Link } from 'react-router-dom';
+import { GoogleGenAI } from '@google/genai';
 
 interface Chapter {
   id: string;
@@ -19,6 +20,12 @@ export default function Writing() {
 
   const [selectedChapterId, setSelectedChapterId] = useState('1');
   const [isEditingList, setIsEditingList] = useState(false);
+  const [aiInspiration, setAiInspiration] = useState('');
+  const [isGeneratingInspiration, setIsGeneratingInspiration] = useState(false);
+
+  useEffect(() => {
+    setAiInspiration('');
+  }, [selectedChapterId]);
 
   const sortedChapters = useMemo(() => {
     return [...chapters].sort((a, b) => a.year - b.year);
@@ -52,8 +59,64 @@ export default function Writing() {
     }
   };
 
+  const [isSaving, setIsSaving] = useState(false);
+  const [showSaveToast, setShowSaveToast] = useState(false);
+
+  const handleSave = () => {
+    setIsSaving(true);
+    setTimeout(() => {
+      setIsSaving(false);
+      setShowSaveToast(true);
+      setTimeout(() => setShowSaveToast(false), 3000);
+    }, 800);
+  };
+
+  const generateInspiration = async () => {
+    const apiKey = localStorage.getItem('gemini_api_key') || process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      alert('请先在设置中配置 Gemini API Key');
+      return;
+    }
+
+    setIsGeneratingInspiration(true);
+    try {
+      const ai = new GoogleGenAI({ apiKey });
+      const prompt = `你是一个传记写作助手。用户正在写关于"${currentChapter.title}"的章节，发生在${currentChapter.year}年。
+当前内容是：
+"${currentChapter.content}"
+
+请提供一段简短的（约50-100字）写作灵感或提示，引导用户回忆更多细节，例如当时的社会环境、心情变化、关键人物等。语气要温和、鼓励。`;
+
+      const response = await ai.models.generateContent({
+        model: 'gemini-3-flash-preview',
+        contents: prompt,
+      });
+
+      setAiInspiration(response.text || '未能生成灵感，请稍后再试。');
+    } catch (error) {
+      console.error('Failed to generate inspiration:', error);
+      setAiInspiration('生成灵感时发生错误，请检查网络或 API Key。');
+    } finally {
+      setIsGeneratingInspiration(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#F5F0E8] pt-24 pb-20 px-6 md:px-[8.5rem]">
+      <AnimatePresence>
+        {showSaveToast && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="fixed top-24 left-1/2 -translate-x-1/2 z-50 bg-[#5C7A4E] text-white px-6 py-3 rounded-full shadow-lg flex items-center gap-2 font-bold text-sm"
+          >
+            <span className="material-symbols-outlined text-sm">check_circle</span>
+            保存成功
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <header className="mb-12 flex justify-between items-end">
         <div>
           <h1 className="text-4xl font-black text-on-surface tracking-tight mb-2">续写华章</h1>
@@ -87,11 +150,8 @@ export default function Writing() {
           <div className="space-y-3">
             {sortedChapters.map(chapter => (
               <div key={chapter.id} className="relative group">
-                <button
-                  onClick={() => !isEditingList && setSelectedChapterId(chapter.id)}
-                  className={`w-full text-left p-4 rounded-2xl border transition-all ${selectedChapterId === chapter.id ? 'bg-white border-[#8B4513] shadow-md' : 'bg-white/50 border-transparent hover:bg-white'} ${isEditingList ? 'cursor-default' : 'cursor-pointer'}`}
-                >
-                  {isEditingList ? (
+                {isEditingList ? (
+                  <div className={`w-full text-left p-4 rounded-2xl border transition-all ${selectedChapterId === chapter.id ? 'bg-white border-[#8B4513] shadow-md' : 'bg-white/50 border-transparent hover:bg-white'} cursor-default`}>
                     <div className="space-y-2">
                       <div className="flex gap-2">
                         <input 
@@ -108,16 +168,19 @@ export default function Writing() {
                         />
                       </div>
                     </div>
-                  ) : (
-                    <>
-                      <div className="flex justify-between items-start mb-1">
-                        <span className="text-[10px] font-bold text-stone-400">{chapter.year} 年</span>
-                        <span className="text-[10px] font-bold text-primary">{chapter.status}</span>
-                      </div>
-                      <h4 className="font-bold text-on-surface">{chapter.title}</h4>
-                    </>
-                  )}
-                </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setSelectedChapterId(chapter.id)}
+                    className={`w-full text-left p-4 rounded-2xl border transition-all ${selectedChapterId === chapter.id ? 'bg-white border-[#8B4513] shadow-md' : 'bg-white/50 border-transparent hover:bg-white'} cursor-pointer`}
+                  >
+                    <div className="flex justify-between items-start mb-1">
+                      <span className="text-[10px] font-bold text-stone-400">{chapter.year} 年</span>
+                      <span className="text-[10px] font-bold text-primary">{chapter.status}</span>
+                    </div>
+                    <h4 className="font-bold text-on-surface">{chapter.title}</h4>
+                  </button>
+                )}
                 
                 {isEditingList && (
                   <button 
@@ -150,9 +213,9 @@ export default function Writing() {
                 <span className="text-sm text-stone-400 font-medium">{currentChapter.year} 年</span>
               </div>
               <div className="flex gap-2">
-                <button className="p-2 text-stone-400 hover:text-primary transition-colors flex items-center gap-1">
-                  <span className="material-symbols-outlined">save</span>
-                  <span className="text-xs font-bold">保存</span>
+                <button onClick={handleSave} disabled={isSaving} className="p-2 text-stone-400 hover:text-primary transition-colors flex items-center gap-1 disabled:opacity-50">
+                  <span className="material-symbols-outlined">{isSaving ? 'sync' : 'save'}</span>
+                  <span className="text-xs font-bold">{isSaving ? '保存中...' : '保存'}</span>
                 </button>
                 <button className="p-2 text-stone-400 hover:text-primary transition-colors">
                   <span className="material-symbols-outlined">share</span>
@@ -169,22 +232,22 @@ export default function Writing() {
 
             <div className="mt-8 pt-6 border-t border-stone-100 flex justify-between items-center">
               <div className="flex gap-6">
-                <button className="flex items-center gap-1 text-xs font-bold text-stone-500 hover:text-primary transition-colors group">
+                <Link to={`/capture?mode=photo&chapterId=${currentChapter.id}`} className="flex items-center gap-1 text-xs font-bold text-stone-500 hover:text-primary transition-colors group no-underline">
                   <span className="material-symbols-outlined text-sm group-hover:scale-110 transition-transform">photo_library</span>
                   插入照片
-                </button>
-                <button className="flex items-center gap-1 text-xs font-bold text-stone-500 hover:text-primary transition-colors group">
+                </Link>
+                <Link to={`/capture?mode=video&chapterId=${currentChapter.id}`} className="flex items-center gap-1 text-xs font-bold text-stone-500 hover:text-primary transition-colors group no-underline">
                   <span className="material-symbols-outlined text-sm group-hover:scale-110 transition-transform">videocam</span>
                   插入视频
-                </button>
-                <button className="flex items-center gap-1 text-xs font-bold text-stone-500 hover:text-primary transition-colors group">
+                </Link>
+                <Link to={`/capture?mode=voice&chapterId=${currentChapter.id}`} className="flex items-center gap-1 text-xs font-bold text-stone-500 hover:text-primary transition-colors group no-underline">
                   <span className="material-symbols-outlined text-sm group-hover:scale-110 transition-transform">audio_file</span>
                   插入语音
-                </button>
-                <button className="flex items-center gap-1 text-xs font-bold text-stone-500 hover:text-primary transition-colors group">
+                </Link>
+                <Link to={`/capture?mode=voice&chapterId=${currentChapter.id}`} className="flex items-center gap-1 text-xs font-bold text-stone-500 hover:text-primary transition-colors group no-underline">
                   <span className="material-symbols-outlined text-sm group-hover:scale-110 transition-transform">mic</span>
                   语音转文字
-                </button>
+                </Link>
               </div>
               <span className="text-[10px] text-stone-400">最近保存：刚刚</span>
             </div>
@@ -195,10 +258,20 @@ export default function Writing() {
             <div className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center shrink-0">
               <span className="material-symbols-outlined text-sm">auto_fix_high</span>
             </div>
-            <div>
-              <h4 className="text-sm font-bold text-primary mb-1">AI 灵感助手</h4>
-              <p className="text-xs text-on-surface-variant leading-relaxed">
-                您可以尝试描述一下当时{currentChapter.title}期间的一些细节，比如当时的社会环境、您的心情变化等，这些细节会让您的回忆更加丰满。
+            <div className="flex-1">
+              <div className="flex justify-between items-center mb-1">
+                <h4 className="text-sm font-bold text-primary">AI 灵感助手</h4>
+                <button 
+                  onClick={generateInspiration}
+                  disabled={isGeneratingInspiration}
+                  className="text-xs text-primary hover:underline disabled:opacity-50 flex items-center gap-1"
+                >
+                  <span className="material-symbols-outlined text-[14px]">{isGeneratingInspiration ? 'sync' : 'refresh'}</span>
+                  {isGeneratingInspiration ? '生成中...' : '获取灵感'}
+                </button>
+              </div>
+              <p className="text-xs text-on-surface-variant leading-relaxed whitespace-pre-wrap">
+                {aiInspiration || `您可以尝试描述一下当时${currentChapter.title}期间的一些细节，比如当时的社会环境、您的心情变化等，这些细节会让您的回忆更加丰满。`}
               </p>
             </div>
           </div>

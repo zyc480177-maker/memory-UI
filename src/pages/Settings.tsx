@@ -1,7 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 export default function Settings() {
   const [activeTab, setActiveTab] = useState('account');
+  const [apiKey, setApiKey] = useState('');
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    const savedKey = localStorage.getItem('gemini_api_key');
+    if (savedKey) {
+      setApiKey(savedKey);
+    }
+  }, []);
+
+  const handleSaveApiKey = () => {
+    setIsSaving(true);
+    localStorage.setItem('gemini_api_key', apiKey);
+    setTimeout(() => {
+      setIsSaving(false);
+      alert('API 密钥已更新');
+    }, 500);
+  };
 
   return (
     <main className="pt-32 pb-20 px-6 md:px-[8.5rem] max-w-7xl mx-auto min-h-screen">
@@ -132,16 +151,21 @@ export default function Settings() {
                 <div className="space-y-3">
                   <label className="text-xs font-bold text-outline uppercase tracking-widest flex justify-between">
                     Google AI Studio API Key
-                    <span className="text-primary hover:underline cursor-pointer">如何获取？</span>
+                    <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline cursor-pointer">如何获取？</a>
                   </label>
                   <div className="relative">
                     <input 
-                      type="password" 
+                      type={showApiKey ? "text" : "password"} 
                       className="w-full bg-surface-container px-4 py-4 rounded-xl border border-outline-variant/20 font-mono text-sm focus:border-primary outline-none" 
-                      defaultValue="AIzaSyA-xxxxxxxxxxxxxxxxxxxx"
+                      placeholder="AIzaSyA-xxxxxxxxxxxxxxxxxxxx"
+                      value={apiKey}
+                      onChange={(e) => setApiKey(e.target.value)}
                     />
-                    <button className="absolute right-4 top-1/2 -translate-y-1/2 text-outline hover:text-primary">
-                      <span className="material-symbols-outlined">visibility</span>
+                    <button 
+                      onClick={() => setShowApiKey(!showApiKey)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-outline hover:text-primary"
+                    >
+                      <span className="material-symbols-outlined">{showApiKey ? 'visibility_off' : 'visibility'}</span>
                     </button>
                   </div>
                 </div>
@@ -155,12 +179,55 @@ export default function Settings() {
               </div>
 
               <div className="pt-6 flex gap-4">
-                <button className="bg-primary text-white px-8 py-3 rounded-full font-bold shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all">
-                  更新密钥
+                <button 
+                  onClick={handleSaveApiKey}
+                  disabled={isSaving}
+                  className="bg-primary text-white px-8 py-3 rounded-full font-bold shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all disabled:opacity-70"
+                >
+                  {isSaving ? '更新中...' : '更新密钥'}
                 </button>
-                <button className="px-8 py-3 rounded-full font-bold border border-outline-variant text-on-surface-variant hover:bg-surface-container transition-all">
-                  测试连接
-                </button>
+              </div>
+            </section>
+          )}
+
+          {activeTab === 'privacy' && (
+            <section className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="space-y-4">
+                <h3 className="text-xl font-bold text-on-surface">隐私与安全</h3>
+                <p className="text-on-surface-variant">管理您的数据隐私和本地存储设置</p>
+              </div>
+
+              <div className="space-y-6">
+                <div className="flex items-center justify-between p-6 bg-surface-container rounded-2xl border border-outline-variant/10">
+                  <div>
+                    <h4 className="font-bold text-on-surface mb-1">本地数据加密</h4>
+                    <p className="text-sm text-on-surface-variant">所有档案数据在本地存储时进行加密处理</p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" className="sr-only peer" defaultChecked />
+                    <div className="w-11 h-6 bg-outline-variant/30 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                  </label>
+                </div>
+
+                <div className="flex items-center justify-between p-6 bg-surface-container rounded-2xl border border-outline-variant/10">
+                  <div>
+                    <h4 className="font-bold text-on-surface mb-1">云端同步备份</h4>
+                    <p className="text-sm text-on-surface-variant">自动将您的档案安全备份至云端</p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" className="sr-only peer" />
+                    <div className="w-11 h-6 bg-outline-variant/30 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                  </label>
+                </div>
+
+                <div className="pt-6 border-t border-outline-variant/10">
+                  <h4 className="font-bold text-error mb-4">危险操作</h4>
+                  <button className="px-6 py-3 border border-error text-error rounded-xl font-bold hover:bg-error/5 transition-colors flex items-center gap-2">
+                    <span className="material-symbols-outlined">delete_forever</span>
+                    清除所有本地数据
+                  </button>
+                  <p className="text-xs text-on-surface-variant mt-2">此操作将永久删除您设备上的所有档案和设置，请谨慎操作。</p>
+                </div>
               </div>
             </section>
           )}

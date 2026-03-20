@@ -19,6 +19,7 @@ import QuickActions from './pages/QuickActions';
 import Notifications from './pages/Notifications';
 import BiographyBook from './pages/BiographyBook';
 import Writing from './pages/Writing';
+import Capture from './pages/Capture';
 
 function AppContent() {
   const location = useLocation();
@@ -45,6 +46,7 @@ function AppContent() {
           <Route path="/notifications" element={<Notifications />} />
           <Route path="/biography-book" element={<BiographyBook />} />
           <Route path="/writing" element={<Writing />} />
+          <Route path="/capture" element={<Capture />} />
         </Routes>
       </main>
       {!isAuthFlow && <MobileNav />}

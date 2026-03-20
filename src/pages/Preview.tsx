@@ -1,8 +1,35 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 
 export default function Preview() {
+  const [isExporting, setIsExporting] = useState(false);
+  const [showToast, setShowToast] = useState(false);
+
+  const handleExport = () => {
+    setIsExporting(true);
+    setTimeout(() => {
+      setIsExporting(false);
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
+    }, 1500);
+  };
+
   return (
-    <main className="pt-32 pb-20 px-6 md:px-[8.5rem] max-w-7xl mx-auto min-h-screen">
+    <main className="pt-32 pb-20 px-6 md:px-[8.5rem] max-w-7xl mx-auto min-h-screen relative">
+      <AnimatePresence>
+        {showToast && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="fixed top-24 left-1/2 -translate-x-1/2 z-50 bg-[#5C7A4E] text-white px-6 py-3 rounded-full shadow-lg flex items-center gap-2 font-bold text-sm"
+          >
+            <span className="material-symbols-outlined text-sm">check_circle</span>
+            导出成功！画册已保存至您的设备。
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="parchment-texture"></div>
       
       <div className="flex flex-col xl:flex-row gap-16 items-start">
@@ -109,9 +136,22 @@ export default function Preview() {
             </div>
           </div>
 
-          <button className="w-full bg-gradient-to-r from-primary to-[#6C2F00] text-white py-5 rounded-2xl font-black text-xl shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3">
-            <span className="material-symbols-outlined">auto_stories</span>
-            导出精装画册
+          <button 
+            onClick={handleExport}
+            disabled={isExporting}
+            className="w-full bg-gradient-to-r from-primary to-[#6C2F00] text-white py-5 rounded-2xl font-black text-xl shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3 disabled:opacity-70 disabled:hover:scale-100"
+          >
+            {isExporting ? (
+              <>
+                <span className="material-symbols-outlined animate-spin">sync</span>
+                正在导出...
+              </>
+            ) : (
+              <>
+                <span className="material-symbols-outlined">auto_stories</span>
+                导出精装画册
+              </>
+            )}
           </button>
         </aside>
       </div>

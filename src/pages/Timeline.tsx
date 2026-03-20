@@ -84,10 +84,10 @@ export default function Timeline() {
                 <h3 className="text-2xl font-bold text-[#8B4513] mb-3">1982 · 事业启航</h3>
                 <p className="text-on-surface-variant leading-relaxed mb-6">步入社会，满怀憧憬。在改革发展的浪潮中，您用汗水书写着奋斗的故事。</p>
                 <div className="flex flex-wrap justify-center md:justify-end gap-2">
-                  <button className="px-3 py-1 bg-primary/5 border border-primary/20 rounded-full text-[10px] text-primary font-bold flex items-center gap-1 hover:bg-primary/10 transition-colors">
+                  <Link to="/archive" className="px-3 py-1 bg-primary/5 border border-primary/20 rounded-full text-[10px] text-primary font-bold flex items-center gap-1 hover:bg-primary/10 transition-colors no-underline">
                     <span className="material-symbols-outlined text-[12px]">add</span>
                     从档案中添加内容
-                  </button>
+                  </Link>
                 </div>
               </div>
               <div className="z-10 flex items-center justify-center w-14 h-14 rounded-full bg-[#8B4513] text-white border-4 border-[#F5F0E8] order-1 md:order-2 shadow-lg cursor-pointer hover:scale-110 transition-transform" onClick={() => setSelectedNode(3)}>
@@ -188,22 +188,22 @@ export default function Timeline() {
                     </h4>
                     <p className="text-xs text-stone-500 mb-4">直接为此章节添加新的回忆点，内容将同步保存至档案库。</p>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                      <button className="py-2 bg-stone-100 hover:bg-stone-200 rounded-lg text-[10px] font-bold transition-colors flex flex-col items-center gap-1">
+                      <Link to={`/capture?mode=voice&chapterId=${selectedNode}`} className="py-2 bg-stone-100 hover:bg-stone-200 rounded-lg text-[10px] font-bold transition-colors flex flex-col items-center gap-1 no-underline text-stone-600">
                         <span className="material-symbols-outlined text-sm">mic</span>
                         口述
-                      </button>
-                      <button className="py-2 bg-stone-100 hover:bg-stone-200 rounded-lg text-[10px] font-bold transition-colors flex flex-col items-center gap-1">
+                      </Link>
+                      <Link to={`/capture?mode=photo&chapterId=${selectedNode}`} className="py-2 bg-stone-100 hover:bg-stone-200 rounded-lg text-[10px] font-bold transition-colors flex flex-col items-center gap-1 no-underline text-stone-600">
                         <span className="material-symbols-outlined text-sm">photo_camera</span>
                         拍照
-                      </button>
-                      <button className="py-2 bg-stone-100 hover:bg-stone-200 rounded-lg text-[10px] font-bold transition-colors flex flex-col items-center gap-1">
+                      </Link>
+                      <Link to={`/capture?mode=video&chapterId=${selectedNode}`} className="py-2 bg-stone-100 hover:bg-stone-200 rounded-lg text-[10px] font-bold transition-colors flex flex-col items-center gap-1 no-underline text-stone-600">
                         <span className="material-symbols-outlined text-sm">videocam</span>
                         视频
-                      </button>
-                      <button className="py-2 bg-stone-100 hover:bg-stone-200 rounded-lg text-[10px] font-bold transition-colors flex flex-col items-center gap-1">
+                      </Link>
+                      <Link to={`/capture?mode=text&chapterId=${selectedNode}`} className="py-2 bg-stone-100 hover:bg-stone-200 rounded-lg text-[10px] font-bold transition-colors flex flex-col items-center gap-1 no-underline text-stone-600">
                         <span className="material-symbols-outlined text-sm">edit_note</span>
                         文字
-                      </button>
+                      </Link>
                     </div>
                   </div>
                 </div>

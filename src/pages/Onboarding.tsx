@@ -3,11 +3,18 @@ import { useNavigate } from 'react-router-dom';
 
 export default function Onboarding() {
   const [step, setStep] = useState(1);
+  const [apiKey, setApiKey] = useState('');
   const navigate = useNavigate();
 
   const nextStep = () => {
-    if (step < 3) setStep(step + 1);
-    else navigate('/');
+    if (step < 3) {
+      setStep(step + 1);
+    } else {
+      if (apiKey) {
+        localStorage.setItem('gemini_api_key', apiKey);
+      }
+      navigate('/');
+    }
   };
 
   return (
@@ -109,7 +116,13 @@ export default function Onboarding() {
                   <label className="text-xs font-bold text-outline uppercase tracking-widest px-1">API Key</label>
                   <div className="relative group">
                     <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline-variant group-focus-within:text-primary transition-colors">key</span>
-                    <input className="w-full bg-surface-container/50 border border-outline-variant/20 rounded-2xl py-4 pl-12 pr-4 focus:border-primary focus:bg-white transition-all outline-none font-mono text-sm" placeholder="AIzaSyA-xxxxxxxxxxxx" type="password" />
+                    <input 
+                      className="w-full bg-surface-container/50 border border-outline-variant/20 rounded-2xl py-4 pl-12 pr-4 focus:border-primary focus:bg-white transition-all outline-none font-mono text-sm" 
+                      placeholder="AIzaSyA-xxxxxxxxxxxx" 
+                      type="password" 
+                      value={apiKey}
+                      onChange={(e) => setApiKey(e.target.value)}
+                    />
                   </div>
                 </div>
               </div>

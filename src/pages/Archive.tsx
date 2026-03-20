@@ -57,13 +57,13 @@ export default function Archive() {
 
               <section className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-16">
                 {['语音录入', '照片扫描', '视频档案', '文字撰写'].map((item, idx) => (
-                  <div key={idx} className="bg-surface-container-low p-6 rounded-2xl flex flex-col items-center gap-3 border border-outline-variant/10 hover:bg-surface-container-high transition-colors cursor-pointer group">
+                  <Link to={`/capture?mode=${['voice', 'photo', 'video', 'text'][idx]}`} key={idx} className="bg-surface-container-low p-6 rounded-2xl flex flex-col items-center gap-3 border border-outline-variant/10 hover:bg-surface-container-high transition-colors cursor-pointer group no-underline">
                     <div className="w-12 h-12 rounded-full bg-secondary-container flex items-center justify-center text-white group-hover:scale-110 transition-transform">
                       <span className="material-symbols-outlined">{['mic', 'scanner', 'videocam', 'edit_note'][idx]}</span>
                     </div>
-                    <span className="text-sm font-medium">{item}</span>
+                    <span className="text-sm font-medium text-on-surface">{item}</span>
                     <span className="text-[12px] text-stone-400">{['口述回忆', '数字化老照片', '录制影像', '执笔书写'][idx]}</span>
-                  </div>
+                  </Link>
                 ))}
               </section>
 

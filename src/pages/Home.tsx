@@ -64,50 +64,57 @@ export default function Home() {
               快捷操作
             </h3>
             <div className="grid grid-cols-2 gap-3">
-              <button className="flex flex-col items-center gap-2 p-4 bg-surface-container rounded-2xl hover:bg-primary/5 hover:text-primary transition-all group">
+              <Link to="/timeline" className="flex flex-col items-center gap-2 p-4 bg-surface-container rounded-2xl hover:bg-primary/5 hover:text-primary transition-all group no-underline text-on-surface">
                 <span className="material-symbols-outlined text-outline group-hover:text-primary transition-colors">history_edu</span>
                 <span className="text-xs font-bold">补全时间轴</span>
-              </button>
-              <button className="flex flex-col items-center gap-2 p-4 bg-surface-container rounded-2xl hover:bg-primary/5 hover:text-primary transition-all group">
+              </Link>
+              <Link to="/writing" className="flex flex-col items-center gap-2 p-4 bg-surface-container rounded-2xl hover:bg-primary/5 hover:text-primary transition-all group no-underline text-on-surface">
                 <span className="material-symbols-outlined text-outline group-hover:text-primary transition-colors">auto_fix_high</span>
                 <span className="text-xs font-bold">AI 智能润色</span>
-              </button>
-              <button className="flex flex-col items-center gap-2 p-4 bg-surface-container rounded-2xl hover:bg-primary/5 hover:text-primary transition-all group">
+              </Link>
+              <Link to="/preview" className="flex flex-col items-center gap-2 p-4 bg-surface-container rounded-2xl hover:bg-primary/5 hover:text-primary transition-all group no-underline text-on-surface">
                 <span className="material-symbols-outlined text-outline group-hover:text-primary transition-colors">share</span>
                 <span className="text-xs font-bold">分享预览</span>
-              </button>
-              <button className="flex flex-col items-center gap-2 p-4 bg-surface-container rounded-2xl hover:bg-primary/5 hover:text-primary transition-all group">
+              </Link>
+              <Link to="/biography-book" className="flex flex-col items-center gap-2 p-4 bg-surface-container rounded-2xl hover:bg-primary/5 hover:text-primary transition-all group no-underline text-on-surface">
                 <span className="material-symbols-outlined text-outline group-hover:text-primary transition-colors">print</span>
                 <span className="text-xs font-bold">导出画册</span>
-              </button>
+              </Link>
             </div>
           </section>
         </div>
 
         {/* Main Interaction & Entries */}
         <div className="lg:col-span-8 flex flex-col gap-16">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <button className="group flex flex-col items-center justify-center p-8 bg-surface-container rounded-2xl transition-all hover:bg-surface-container-high hover:translate-y-[-4px] active:scale-[0.98] border border-outline-variant/5">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <Link to="/capture?mode=voice" className="group flex flex-col items-center justify-center p-8 bg-surface-container rounded-2xl transition-all hover:bg-surface-container-high hover:translate-y-[-4px] active:scale-[0.98] border border-outline-variant/5 no-underline">
               <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mb-6 group-hover:bg-primary/20 transition-colors">
                 <span className="material-symbols-outlined text-4xl text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>mic</span>
               </div>
               <span className="text-xl font-bold text-on-surface">记录语音</span>
               <span className="text-sm text-on-surface-variant mt-2">讲述一段往事</span>
-            </button>
-            <button className="group flex flex-col items-center justify-center p-8 bg-secondary/5 rounded-2xl transition-all hover:bg-secondary/10 hover:translate-y-[-4px] active:scale-[0.98] border border-secondary/5">
+            </Link>
+            <Link to="/capture?mode=photo" className="group flex flex-col items-center justify-center p-8 bg-secondary/5 rounded-2xl transition-all hover:bg-secondary/10 hover:translate-y-[-4px] active:scale-[0.98] border border-secondary/5 no-underline">
               <div className="w-20 h-20 bg-secondary/10 rounded-full flex items-center justify-center mb-6 group-hover:bg-secondary/20 transition-colors">
                 <span className="material-symbols-outlined text-4xl text-secondary" style={{ fontVariationSettings: "'FILL' 1" }}>photo_camera</span>
               </div>
               <span className="text-xl font-bold text-on-surface">扫描相片</span>
               <span className="text-sm text-on-surface-variant mt-2">定格旧日时光</span>
-            </button>
-            <button className="group flex flex-col items-center justify-center p-8 bg-surface-container rounded-2xl transition-all hover:bg-surface-container-high hover:translate-y-[-4px] active:scale-[0.98] border border-outline-variant/5">
+            </Link>
+            <Link to="/capture?mode=video" className="group flex flex-col items-center justify-center p-8 bg-surface-container rounded-2xl transition-all hover:bg-surface-container-high hover:translate-y-[-4px] active:scale-[0.98] border border-outline-variant/5 no-underline">
+              <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mb-6 group-hover:bg-primary/20 transition-colors">
+                <span className="material-symbols-outlined text-4xl text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>videocam</span>
+              </div>
+              <span className="text-xl font-bold text-on-surface">录制视频</span>
+              <span className="text-sm text-on-surface-variant mt-2">留下生动影像</span>
+            </Link>
+            <Link to="/capture?mode=text" className="group flex flex-col items-center justify-center p-8 bg-surface-container rounded-2xl transition-all hover:bg-surface-container-high hover:translate-y-[-4px] active:scale-[0.98] border border-outline-variant/5 no-underline">
               <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mb-6 group-hover:bg-primary/20 transition-colors">
                 <span className="material-symbols-outlined text-4xl text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>edit_note</span>
               </div>
               <span className="text-xl font-bold text-on-surface">文字叙事</span>
               <span className="text-sm text-on-surface-variant mt-2">书写心中感悟</span>
-            </button>
+            </Link>
           </div>
 
           <section>

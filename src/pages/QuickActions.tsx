@@ -3,9 +3,9 @@ import { Link } from 'react-router-dom';
 
 export default function QuickActions() {
   const actions = [
-    { title: '记录语音', desc: '讲述一段往事', icon: 'mic', color: 'bg-primary/10 text-primary', path: '/archive' },
-    { title: '扫描相片', desc: '定格旧日时光', icon: 'photo_camera', color: 'bg-secondary/10 text-secondary', path: '/archive' },
-    { title: '文字叙事', desc: '书写心中感悟', icon: 'edit_note', color: 'bg-primary/10 text-primary', path: '/refinement' },
+    { title: '记录语音', desc: '讲述一段往事', icon: 'mic', color: 'bg-primary/10 text-primary', path: '/capture?mode=voice' },
+    { title: '扫描相片', desc: '定格旧日时光', icon: 'photo_camera', color: 'bg-secondary/10 text-secondary', path: '/capture?mode=photo' },
+    { title: '文字叙事', desc: '书写心中感悟', icon: 'edit_note', color: 'bg-primary/10 text-primary', path: '/capture?mode=text' },
     { title: '补全时间轴', desc: '梳理生命脉络', icon: 'history_edu', color: 'bg-secondary/10 text-secondary', path: '/timeline' },
     { title: 'AI 智能润色', desc: '提升文学质感', icon: 'auto_fix_high', color: 'bg-primary/10 text-primary', path: '/refinement' },
     { title: '分享预览', desc: '与家人共享回忆', icon: 'share', color: 'bg-secondary/10 text-secondary', path: '/preview' },

@@ -14,18 +14,18 @@ export default function BiographyBook() {
 
   return (
     <div className="min-h-screen bg-[#F5F0E8] pt-24 pb-20 px-6 md:px-[8.5rem]">
-      <header className="mb-12 flex justify-between items-end">
+      <header className="mb-12 flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
         <div>
           <h1 className="text-4xl font-black text-on-surface tracking-tight mb-2">传记成书</h1>
           <p className="text-on-surface-variant/70 italic">最后一步：将您的岁月长歌编撰成册</p>
         </div>
         <div className="flex gap-4">
-          <Link to="/timeline" className="px-6 py-2 border border-[#8B4513]/20 rounded-full text-sm font-bold text-[#8B4513] hover:bg-[#8B4513]/5 transition-colors">
+          <Link to="/timeline" className="px-6 py-2 border border-[#8B4513]/20 rounded-full text-sm font-bold text-[#8B4513] hover:bg-[#8B4513]/5 transition-colors flex items-center justify-center">
             返回修改
           </Link>
-          <button className="px-8 py-2 bg-[#8B4513] text-white rounded-full font-bold text-sm shadow-lg hover:bg-[#6C2F00] transition-all active:scale-95">
+          <Link to="/preview" className="px-8 py-2 bg-[#8B4513] text-white rounded-full font-bold text-sm shadow-lg hover:bg-[#6C2F00] transition-all active:scale-95 no-underline flex items-center justify-center">
             确认出版
-          </button>
+          </Link>
         </div>
       </header>
 
@@ -76,7 +76,7 @@ export default function BiographyBook() {
                   <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${selectedLayout === layout.id ? 'bg-[#8B4513] text-white' : 'bg-stone-100 text-stone-400'}`}>
                     <span className="material-symbols-outlined">{layout.icon}</span>
                   </div>
-                  <div>
+                  <div className="flex-1">
                     <h4 className="font-bold text-on-surface">{layout.name}</h4>
                     <p className="text-xs text-stone-400 mt-1">{layout.desc}</p>
                   </div>
