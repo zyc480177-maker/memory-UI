@@ -23,7 +23,12 @@ app.use(express.urlencoded({ extended: true }));
 
 // Health check
 app.get('/health', (_req, res) => {
-  res.json({ status: 'ok', version: '0.1.0', env: config.nodeEnv });
+  res.json({
+    status: 'ok',
+    version: '0.1.0',
+    env: config.nodeEnv,
+    aiConfigured: Boolean(config.ai.geminiApiKey),
+  });
 });
 
 // API routes

@@ -3,6 +3,14 @@ import type {
   AccountUser, Project, SubjectProfile, Asset, AssetAnalysis, Event, Chapter
 } from '../types/domain';
 
+// ─── System ───────────────────────────────────────────────────────────────────
+
+export const systemApi = {
+  async health(): Promise<{ status: string; version: string; env: string; aiConfigured: boolean }> {
+    return api.get('/health');
+  },
+};
+
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 
 export const authApi = {

@@ -4,9 +4,11 @@ import { Link } from 'react-router-dom';
 import { useProject } from '../context/ProjectContext';
 import { eventsApi, chaptersApi } from '../api';
 import { Event, Chapter } from '../types/domain';
+import { useAiStatus } from '../hooks/useAiStatus';
 
 export default function Writing() {
   const { currentProject } = useProject();
+  const aiConfigured = useAiStatus();
   const [events, setEvents] = useState<Event[]>([]);
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [selectedChapter, setSelectedChapter] = useState<Chapter | null>(null);
@@ -52,7 +54,7 @@ export default function Writing() {
       const chapter = await chaptersApi.create(currentProject.id, {
         title: newChapterTitle,
         eventIds: selectedEventIds,
-        generateContent: selectedEventIds.length > 0,
+        generateContent: aiConfigured !== false && selectedEventIds.length > 0,
       });
       const updated = await chaptersApi.list(currentProject.id);
       setChapters(updated);
@@ -181,8 +183,9 @@ export default function Writing() {
                   {saved && <span className="text-xs text-green-600 flex items-center gap-1"><span className="material-symbols-outlined text-sm">check_circle</span>已保存</span>}
                   <button
                     onClick={handleRegenerate}
-                    disabled={generating}
-                    className="px-4 py-2 border border-primary/30 text-primary rounded-xl text-sm font-bold hover:bg-primary/5 transition-colors flex items-center gap-2 disabled:opacity-50"
+                    disabled={generating || aiConfigured === false}
+                    title={aiConfigured === false ? '未配置 AI，无法生成。可直接在下方手动撰写内容' : undefined}
+                    className="px-4 py-2 border border-primary/30 text-primary rounded-xl text-sm font-bold hover:bg-primary/5 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <span className={`material-symbols-outlined text-sm ${generating ? 'animate-spin' : ''}`}>auto_fix_high</span>
                     {generating ? 'AI 生成中...' : 'AI 重新生成'}
@@ -294,7 +297,9 @@ export default function Writing() {
                   <div className="flex gap-3 pt-2">
                     <button type="button" onClick={() => setShowNewChapter(false)} className="flex-1 py-3 border border-stone-200 rounded-xl text-stone-500 font-bold hover:bg-stone-50">取消</button>
                     <button type="submit" disabled={generating} className="flex-1 py-3 bg-primary text-white rounded-xl font-bold disabled:opacity-60 flex items-center justify-center gap-2">
-                      {generating ? <><span className="material-symbols-outlined text-sm animate-spin">sync</span>生成中...</> : selectedEventIds.length > 0 ? 'AI 起草章节' : '创建空章节'}
+                      {generating
+                        ? <><span className="material-symbols-outlined text-sm animate-spin">sync</span>生成中...</>
+                        : (aiConfigured !== false && selectedEventIds.length > 0) ? 'AI 起草章节' : '创建章节'}
                     </button>
                   </div>
                 </form>

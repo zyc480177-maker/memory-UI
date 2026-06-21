@@ -26,24 +26,120 @@ function getEventIcon(event: Event): string {
   return ICONS_FOR_TAGS[tag] ?? 'star';
 }
 
+const EMOTION_OPTIONS = ['喜悦', '悲伤', '感动', '奋斗', '思念'];
+
+type EventForm = {
+  title: string;
+  date: string;
+  summary: string;
+  description: string;
+  locationText: string;
+  participants: string;
+  emotionTags: string[];
+};
+
+const EMPTY_FORM: EventForm = {
+  title: '', date: '', summary: '', description: '', locationText: '', participants: '', emotionTags: [],
+};
+
+function sortEvents(evts: Event[]): Event[] {
+  return [...evts].sort((a, b) => {
+    if (!a.startAt && !b.startAt) return (a.timelineOrderHint ?? 0) - (b.timelineOrderHint ?? 0);
+    if (!a.startAt) return 1;
+    if (!b.startAt) return -1;
+    return a.startAt.localeCompare(b.startAt);
+  });
+}
+
 export default function Timeline() {
   const { currentProject } = useProject();
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Event | null>(null);
 
-  useEffect(() => {
+  // Manual event form state
+  const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [form, setForm] = useState<EventForm>(EMPTY_FORM);
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState('');
+
+  async function loadEvents() {
     if (!currentProject) { setLoading(false); return; }
-    eventsApi.list(currentProject.id).then(evts => {
-      const sorted = [...evts].sort((a, b) => {
-        if (!a.startAt && !b.startAt) return (a.timelineOrderHint ?? 0) - (b.timelineOrderHint ?? 0);
-        if (!a.startAt) return 1;
-        if (!b.startAt) return -1;
-        return a.startAt.localeCompare(b.startAt);
-      });
-      setEvents(sorted);
-    }).finally(() => setLoading(false));
-  }, [currentProject?.id]);
+    setLoading(true);
+    try {
+      const evts = await eventsApi.list(currentProject.id);
+      setEvents(sortEvents(evts));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { loadEvents(); }, [currentProject?.id]);
+
+  function openCreate() {
+    setEditingId(null);
+    setForm(EMPTY_FORM);
+    setFormError('');
+    setShowForm(true);
+  }
+
+  function openEdit(evt: Event) {
+    setEditingId(evt.id);
+    setForm({
+      title: evt.title ?? '',
+      date: evt.startAt ? new Date(evt.startAt).toISOString().slice(0, 10) : '',
+      summary: evt.summary ?? '',
+      description: evt.description ?? '',
+      locationText: evt.locationText ?? '',
+      participants: (evt.participants ?? []).join('、'),
+      emotionTags: evt.emotionTags ?? [],
+    });
+    setFormError('');
+    setSelected(null);
+    setShowForm(true);
+  }
+
+  function toggleEmotion(tag: string) {
+    setForm(f => ({
+      ...f,
+      emotionTags: f.emotionTags.includes(tag)
+        ? f.emotionTags.filter(t => t !== tag)
+        : [...f.emotionTags, tag],
+    }));
+  }
+
+  async function handleSubmitEvent(e: React.FormEvent) {
+    e.preventDefault();
+    if (!currentProject || !form.title.trim()) { setFormError('请填写事件标题'); return; }
+    setSaving(true);
+    setFormError('');
+    try {
+      const participants = form.participants
+        .split(/[，,、]/).map(s => s.trim()).filter(Boolean);
+      const payload = {
+        title: form.title.trim(),
+        summary: form.summary.trim() || undefined,
+        description: form.description.trim() || undefined,
+        startAt: form.date ? new Date(form.date).toISOString() : undefined,
+        timePrecision: (form.date ? 'day' : 'unknown') as Event['timePrecision'],
+        locationText: form.locationText.trim() || undefined,
+        participants: participants.length ? participants : undefined,
+        emotionTags: form.emotionTags.length ? form.emotionTags : undefined,
+      };
+      if (editingId) {
+        await eventsApi.update(currentProject.id, editingId, payload);
+      } else {
+        await eventsApi.create(currentProject.id, payload);
+      }
+      setShowForm(false);
+      await loadEvents();
+    } catch (err) {
+      setFormError((err as Error).message || '保存失败，请重试');
+    } finally {
+      setSaving(false);
+    }
+  }
 
   if (!currentProject) {
     return (
@@ -67,10 +163,14 @@ export default function Timeline() {
               <span className="material-symbols-outlined text-sm">folder_open</span>
               管理我的档案
             </Link>
-            <Link to="/capture" className="px-6 py-2 bg-[#8B4513] text-white rounded-full text-sm font-bold hover:bg-[#6c2f00] transition-colors flex items-center gap-2 no-underline">
-              <span className="material-symbols-outlined text-sm">add</span>
+            <Link to="/capture" className="px-6 py-2 bg-white border border-[#8B4513]/20 rounded-full text-sm font-bold text-[#8B4513] hover:bg-[#8B4513]/5 transition-colors flex items-center gap-2 no-underline">
+              <span className="material-symbols-outlined text-sm">photo_library</span>
               添加素材
             </Link>
+            <button onClick={openCreate} className="px-6 py-2 bg-[#8B4513] text-white rounded-full text-sm font-bold hover:bg-[#6c2f00] transition-colors flex items-center gap-2">
+              <span className="material-symbols-outlined text-sm">add</span>
+              手动添加事件
+            </button>
           </div>
         </div>
 
@@ -83,11 +183,17 @@ export default function Timeline() {
             <span className="material-symbols-outlined text-7xl text-stone-200 mb-6">history_edu</span>
             <h3 className="text-xl font-bold text-on-surface mb-3">还没有任何事件</h3>
             <p className="text-on-surface-variant/70 mb-8 max-w-sm">
-              上传照片、录音或写下文字，AI 会自动分析提取人生事件，它们将在这里呈现为时间轴。
+              手动添加人生事件，或上传素材让 AI 自动提取，它们将在这里呈现为时间轴。
             </p>
-            <Link to="/capture" className="px-8 py-3 bg-primary text-white rounded-2xl font-bold no-underline hover:bg-primary/90 transition-colors">
-              上传第一份素材
-            </Link>
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <button onClick={openCreate} className="px-8 py-3 bg-primary text-white rounded-2xl font-bold hover:bg-primary/90 transition-colors flex items-center gap-2">
+                <span className="material-symbols-outlined text-sm">add</span>
+                手动添加事件
+              </button>
+              <Link to="/capture" className="px-8 py-3 bg-white border border-primary/20 text-primary rounded-2xl font-bold no-underline hover:bg-primary/5 transition-colors">
+                上传素材
+              </Link>
+            </div>
           </div>
         ) : (
           <div className="relative">
@@ -266,6 +372,13 @@ export default function Timeline() {
                   ))}
                 </div>
                 <div className="flex gap-3 pt-2">
+                  <button
+                    onClick={() => openEdit(selected)}
+                    className="py-3 px-4 border border-primary/30 text-primary rounded-xl font-bold hover:bg-primary/5 transition-colors text-sm flex items-center justify-center gap-2"
+                  >
+                    <span className="material-symbols-outlined text-sm">edit</span>
+                    编辑
+                  </button>
                   <Link
                     to="/writing"
                     onClick={() => setSelected(null)}
@@ -276,6 +389,135 @@ export default function Timeline() {
                   </Link>
                 </div>
               </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Manual event form modal */}
+      <AnimatePresence>
+        {showForm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[110] bg-black/50 backdrop-blur-sm flex items-center justify-center p-6"
+            onClick={() => setShowForm(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 20 }}
+              onClick={e => e.stopPropagation()}
+              className="bg-white w-full max-w-lg rounded-3xl shadow-2xl max-h-[90vh] overflow-y-auto"
+            >
+              <div className="p-8 border-b border-[#8B4513]/10 flex justify-between items-center">
+                <h2 className="text-2xl font-bold text-[#8B4513]">{editingId ? '编辑事件' : '新增事件'}</h2>
+                <button onClick={() => setShowForm(false)} className="text-stone-400 hover:text-stone-600">
+                  <span className="material-symbols-outlined">close</span>
+                </button>
+              </div>
+              <form onSubmit={handleSubmitEvent} className="p-8 space-y-5">
+                <div>
+                  <label className="text-xs font-bold text-stone-400 uppercase tracking-widest block mb-2">事件标题 *</label>
+                  <input
+                    type="text"
+                    value={form.title}
+                    onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+                    placeholder="例如：考上大学"
+                    required
+                    className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary text-on-surface"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs font-bold text-stone-400 uppercase tracking-widest block mb-2">发生日期</label>
+                    <input
+                      type="date"
+                      value={form.date}
+                      onChange={e => setForm(f => ({ ...f, date: e.target.value }))}
+                      className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary text-on-surface"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-stone-400 uppercase tracking-widest block mb-2">地点</label>
+                    <input
+                      type="text"
+                      value={form.locationText}
+                      onChange={e => setForm(f => ({ ...f, locationText: e.target.value }))}
+                      placeholder="例如：北京"
+                      className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary text-on-surface"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-stone-400 uppercase tracking-widest block mb-2">摘要</label>
+                  <input
+                    type="text"
+                    value={form.summary}
+                    onChange={e => setForm(f => ({ ...f, summary: e.target.value }))}
+                    placeholder="一句话概括这件事"
+                    className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary text-on-surface"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-stone-400 uppercase tracking-widest block mb-2">详情</label>
+                  <textarea
+                    value={form.description}
+                    onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+                    placeholder="详细描述这件事的经过..."
+                    rows={4}
+                    className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary text-on-surface resize-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-stone-400 uppercase tracking-widest block mb-2">参与者（用、或，分隔）</label>
+                  <input
+                    type="text"
+                    value={form.participants}
+                    onChange={e => setForm(f => ({ ...f, participants: e.target.value }))}
+                    placeholder="例如：父亲、母亲、老师"
+                    className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary text-on-surface"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-stone-400 uppercase tracking-widest block mb-2">情感标签</label>
+                  <div className="flex flex-wrap gap-2">
+                    {EMOTION_OPTIONS.map(tag => (
+                      <button
+                        type="button"
+                        key={tag}
+                        onClick={() => toggleEmotion(tag)}
+                        className={`text-sm px-3 py-1.5 rounded-full font-bold transition-colors border ${
+                          form.emotionTags.includes(tag)
+                            ? 'bg-primary text-white border-primary'
+                            : 'bg-white text-stone-500 border-stone-200 hover:border-primary/40'
+                        }`}
+                      >
+                        {tag}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {formError && (
+                  <div className="bg-red-50 border border-red-200 text-red-600 rounded-xl px-4 py-3 text-sm">
+                    {formError}
+                  </div>
+                )}
+
+                <div className="flex gap-3 pt-2">
+                  <button type="button" onClick={() => setShowForm(false)} className="flex-1 py-3 border border-stone-200 rounded-xl text-stone-500 font-bold hover:bg-stone-50 transition-colors">取消</button>
+                  <button type="submit" disabled={saving} className="flex-1 py-3 bg-primary text-white rounded-xl font-bold disabled:opacity-60 flex items-center justify-center gap-2 hover:bg-primary/90 transition-colors">
+                    {saving ? <><span className="material-symbols-outlined text-sm animate-spin">sync</span>保存中...</> : (editingId ? '保存修改' : '添加事件')}
+                  </button>
+                </div>
+              </form>
             </motion.div>
           </motion.div>
         )}

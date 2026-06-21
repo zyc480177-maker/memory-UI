@@ -3,11 +3,13 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { useProject } from '../context/ProjectContext';
 import { assetsApi } from '../api';
+import { useAiStatus } from '../hooks/useAiStatus';
 
 export default function Capture() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { currentProject } = useProject();
+  const aiConfigured = useAiStatus();
 
   const initialMode = searchParams.get('mode') || 'photo';
   const [mode, setMode] = useState(initialMode);
@@ -99,7 +101,7 @@ export default function Capture() {
             className="fixed top-24 left-1/2 -translate-x-1/2 z-50 bg-[#5C7A4E] text-white px-6 py-3 rounded-full shadow-lg flex items-center gap-2 font-bold text-sm"
           >
             <span className="material-symbols-outlined text-sm">check_circle</span>
-            已保存！AI 正在后台分析...
+            {aiConfigured === false ? '已保存到档案！' : '已保存！AI 正在后台分析...'}
           </motion.div>
         )}
       </AnimatePresence>
@@ -271,7 +273,9 @@ export default function Capture() {
           </button>
 
           <p className="text-xs text-center text-stone-400">
-            上传后 AI 将自动分析素材，提取人生事件
+            {aiConfigured === false
+              ? '当前未配置 AI，素材将存入档案；可前往「岁月长歌」手动添加事件'
+              : '上传后 AI 将自动分析素材，提取人生事件'}
           </p>
         </div>
       </div>
