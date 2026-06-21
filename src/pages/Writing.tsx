@@ -1,283 +1,308 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Link } from 'react-router-dom';
-import { GoogleGenAI } from '@google/genai';
-
-interface Chapter {
-  id: string;
-  title: string;
-  year: number;
-  status: string;
-  content: string;
-}
+import { useProject } from '../context/ProjectContext';
+import { eventsApi, chaptersApi } from '../api';
+import { Event, Chapter } from '../types/domain';
 
 export default function Writing() {
-  const [chapters, setChapters] = useState<Chapter[]>([
-    { id: '1', title: '呱呱坠地', year: 1952, status: '80%', content: '那时候的门槛很高，我总喜欢坐在上面看屋外的雨落到石阶上。雨水顺着瓦片流下来，像是一串串晶莹的珍珠...' },
-    { id: '2', title: '书香岁月', year: 1970, status: '45%', content: '青葱校园，笔墨留香。那是知识启蒙的年代，也是梦想扎根的土壤。' },
-    { id: '3', title: '事业启航', year: 1982, status: '20%', content: '步入社会，满怀憧憬。在改革发展的浪潮中，您用汗水书写着奋斗的故事。' }
-  ]);
-
-  const [selectedChapterId, setSelectedChapterId] = useState('1');
-  const [isEditingList, setIsEditingList] = useState(false);
-  const [aiInspiration, setAiInspiration] = useState('');
-  const [isGeneratingInspiration, setIsGeneratingInspiration] = useState(false);
+  const { currentProject } = useProject();
+  const [events, setEvents] = useState<Event[]>([]);
+  const [chapters, setChapters] = useState<Chapter[]>([]);
+  const [selectedChapter, setSelectedChapter] = useState<Chapter | null>(null);
+  const [selectedEventIds, setSelectedEventIds] = useState<string[]>([]);
+  const [editContent, setEditContent] = useState('');
+  const [newChapterTitle, setNewChapterTitle] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [generating, setGenerating] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [showNewChapter, setShowNewChapter] = useState(false);
+  const [error, setError] = useState('');
+  const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    setAiInspiration('');
-  }, [selectedChapterId]);
+    if (!currentProject) { setLoading(false); return; }
+    Promise.all([
+      eventsApi.list(currentProject.id),
+      chaptersApi.list(currentProject.id),
+    ]).then(([evts, chps]) => {
+      setEvents(evts);
+      setChapters(chps);
+      if (chps.length > 0 && !selectedChapter) {
+        const ch = chps[0];
+        setSelectedChapter(ch);
+        setEditContent(ch.editedContent ?? ch.draftContent ?? '');
+      }
+    }).finally(() => setLoading(false));
+  }, [currentProject?.id]);
 
-  const sortedChapters = useMemo(() => {
-    return [...chapters].sort((a, b) => a.year - b.year);
-  }, [chapters]);
+  function selectChapter(ch: Chapter) {
+    setSelectedChapter(ch);
+    setEditContent(ch.editedContent ?? ch.draftContent ?? '');
+    setSaved(false);
+    setError('');
+  }
 
-  const currentChapter = chapters.find(c => c.id === selectedChapterId) || chapters[0];
-
-  const handleUpdateChapter = (id: string, updates: Partial<Chapter>) => {
-    setChapters(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
-  };
-
-  const handleAddChapter = () => {
-    const newId = Math.random().toString(36).substr(2, 9);
-    const newChapter: Chapter = {
-      id: newId,
-      title: '新章节',
-      year: new Date().getFullYear(),
-      status: '0%',
-      content: ''
-    };
-    setChapters(prev => [...prev, newChapter]);
-    setSelectedChapterId(newId);
-    setIsEditingList(true);
-  };
-
-  const handleDeleteChapter = (id: string) => {
-    if (chapters.length <= 1) return;
-    setChapters(prev => prev.filter(c => c.id !== id));
-    if (selectedChapterId === id) {
-      setSelectedChapterId(chapters.find(c => c.id !== id)?.id || '');
-    }
-  };
-
-  const [isSaving, setIsSaving] = useState(false);
-  const [showSaveToast, setShowSaveToast] = useState(false);
-
-  const handleSave = () => {
-    setIsSaving(true);
-    setTimeout(() => {
-      setIsSaving(false);
-      setShowSaveToast(true);
-      setTimeout(() => setShowSaveToast(false), 3000);
-    }, 800);
-  };
-
-  const generateInspiration = async () => {
-    const apiKey = localStorage.getItem('gemini_api_key') || process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      alert('请先在设置中配置 Gemini API Key');
-      return;
-    }
-
-    setIsGeneratingInspiration(true);
+  async function handleCreateChapter(e: React.FormEvent) {
+    e.preventDefault();
+    if (!currentProject || !newChapterTitle.trim()) return;
+    setGenerating(true);
+    setError('');
     try {
-      const ai = new GoogleGenAI({ apiKey });
-      const prompt = `你是一个传记写作助手。用户正在写关于"${currentChapter.title}"的章节，发生在${currentChapter.year}年。
-当前内容是：
-"${currentChapter.content}"
-
-请提供一段简短的（约50-100字）写作灵感或提示，引导用户回忆更多细节，例如当时的社会环境、心情变化、关键人物等。语气要温和、鼓励。`;
-
-      const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: prompt,
+      const chapter = await chaptersApi.create(currentProject.id, {
+        title: newChapterTitle,
+        eventIds: selectedEventIds,
+        generateContent: selectedEventIds.length > 0,
       });
-
-      setAiInspiration(response.text || '未能生成灵感，请稍后再试。');
-    } catch (error) {
-      console.error('Failed to generate inspiration:', error);
-      setAiInspiration('生成灵感时发生错误，请检查网络或 API Key。');
+      const updated = await chaptersApi.list(currentProject.id);
+      setChapters(updated);
+      selectChapter(chapter);
+      setShowNewChapter(false);
+      setNewChapterTitle('');
+      setSelectedEventIds([]);
+    } catch (err) {
+      setError((err as Error).message);
     } finally {
-      setIsGeneratingInspiration(false);
+      setGenerating(false);
     }
-  };
+  }
+
+  async function handleSave() {
+    if (!currentProject || !selectedChapter) return;
+    setSaving(true);
+    try {
+      const updated = await chaptersApi.update(currentProject.id, selectedChapter.id, {
+        editedContent: editContent,
+        status: 'owner_editing',
+      });
+      const list = await chaptersApi.list(currentProject.id);
+      setChapters(list);
+      setSelectedChapter(updated);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleRegenerate() {
+    if (!currentProject || !selectedChapter) return;
+    setGenerating(true);
+    setError('');
+    try {
+      const updated = await chaptersApi.regenerate(currentProject.id, selectedChapter.id);
+      setEditContent(updated.draftContent ?? '');
+      setSelectedChapter(updated);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setGenerating(false);
+    }
+  }
+
+  if (!currentProject) {
+    return (
+      <div className="min-h-screen bg-surface pt-24 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-on-surface-variant mb-4">请先创建或选择一个项目</p>
+          <Link to="/" className="text-primary font-bold no-underline">返回首页</Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-[#F5F0E8] pt-24 pb-20 px-6 md:px-[8.5rem]">
-      <AnimatePresence>
-        {showSaveToast && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="fixed top-24 left-1/2 -translate-x-1/2 z-50 bg-[#5C7A4E] text-white px-6 py-3 rounded-full shadow-lg flex items-center gap-2 font-bold text-sm"
-          >
-            <span className="material-symbols-outlined text-sm">check_circle</span>
-            保存成功
-          </motion.div>
-        )}
-      </AnimatePresence>
+    <div className="min-h-screen bg-[#F5F0E8] pt-16">
+      <div className="flex h-[calc(100vh-64px)]">
+        {/* Left: Chapter list */}
+        <div className="w-72 bg-surface border-r border-outline-variant/20 flex flex-col overflow-hidden shrink-0">
+          <div className="p-6 border-b border-outline-variant/10">
+            <h2 className="font-black text-on-surface text-lg">{currentProject.title}</h2>
+            <p className="text-xs text-stone-400 mt-1">{chapters.length} 个章节</p>
+          </div>
 
-      <header className="mb-12 flex justify-between items-end">
-        <div>
-          <h1 className="text-4xl font-black text-on-surface tracking-tight mb-2">续写华章</h1>
-          <p className="text-on-surface-variant/70 italic">笔耕不辍，记录生命中的每一个精彩瞬间</p>
-        </div>
-        <div className="flex gap-4">
-          <button 
-            onClick={() => setIsEditingList(!isEditingList)}
-            className={`px-6 py-2 rounded-full font-bold text-sm transition-all flex items-center gap-2 ${isEditingList ? 'bg-primary text-white shadow-lg' : 'bg-white border border-stone-200 text-stone-600 hover:bg-stone-50'}`}
-          >
-            <span className="material-symbols-outlined text-sm">{isEditingList ? 'check' : 'edit_note'}</span>
-            {isEditingList ? '完成整理' : '整理目录'}
-          </button>
-          <Link to="/timeline" className="px-6 py-2 bg-[#8B4513] text-white rounded-full font-bold text-sm shadow-lg hover:bg-[#6C2F00] transition-all no-underline flex items-center gap-2">
-            <span className="material-symbols-outlined text-sm">visibility</span>
-            预览传记
-          </Link>
-        </div>
-      </header>
-
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-        {/* Chapter List */}
-        <div className="lg:col-span-1 space-y-4">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-sm font-bold text-stone-400 uppercase tracking-widest">章节目录</h3>
-            {isEditingList && (
-              <span className="text-[10px] text-primary font-bold animate-pulse">编辑模式</span>
+          <div className="flex-1 overflow-y-auto p-4 space-y-2">
+            {loading ? (
+              <div className="text-center py-8">
+                <span className="material-symbols-outlined text-2xl text-primary animate-spin block">sync</span>
+              </div>
+            ) : chapters.length === 0 ? (
+              <div className="text-center py-8 text-stone-400">
+                <span className="material-symbols-outlined text-3xl block mb-2">menu_book</span>
+                <p className="text-sm">还没有章节</p>
+              </div>
+            ) : (
+              chapters.map((ch) => (
+                <button
+                  key={ch.id}
+                  onClick={() => selectChapter(ch)}
+                  className={`w-full text-left p-4 rounded-xl transition-all ${selectedChapter?.id === ch.id ? 'bg-primary/10 border border-primary/20' : 'hover:bg-stone-100 border border-transparent'}`}
+                >
+                  <p className={`font-bold text-sm ${selectedChapter?.id === ch.id ? 'text-primary' : 'text-on-surface'}`}>{ch.title}</p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
+                      ch.status === 'finalized' ? 'bg-green-50 text-green-600' :
+                      ch.status === 'ai_draft' ? 'bg-amber-50 text-amber-600' :
+                      ch.status === 'owner_editing' ? 'bg-blue-50 text-blue-600' :
+                      'bg-stone-100 text-stone-400'
+                    }`}>
+                      {ch.status === 'outline' ? '大纲' : ch.status === 'ai_draft' ? 'AI草稿' : ch.status === 'owner_editing' ? '编辑中' : '已完成'}
+                    </span>
+                    <span className="text-[10px] text-stone-400">{ch.wordCount} 字</span>
+                  </div>
+                </button>
+              ))
             )}
           </div>
-          
-          <div className="space-y-3">
-            {sortedChapters.map(chapter => (
-              <div key={chapter.id} className="relative group">
-                {isEditingList ? (
-                  <div className={`w-full text-left p-4 rounded-2xl border transition-all ${selectedChapterId === chapter.id ? 'bg-white border-[#8B4513] shadow-md' : 'bg-white/50 border-transparent hover:bg-white'} cursor-default`}>
-                    <div className="space-y-2">
-                      <div className="flex gap-2">
-                        <input 
-                          type="number" 
-                          value={chapter.year}
-                          onChange={(e) => handleUpdateChapter(chapter.id, { year: parseInt(e.target.value) || 0 })}
-                          className="w-20 bg-stone-100 rounded px-2 py-1 text-[10px] font-bold text-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                        />
-                        <input 
-                          type="text" 
-                          value={chapter.title}
-                          onChange={(e) => handleUpdateChapter(chapter.id, { title: e.target.value })}
-                          className="flex-1 bg-stone-100 rounded px-2 py-1 text-sm font-bold text-on-surface focus:outline-none focus:ring-1 focus:ring-primary"
-                        />
-                      </div>
-                    </div>
+
+          <div className="p-4 border-t border-outline-variant/10">
+            <button
+              onClick={() => setShowNewChapter(true)}
+              className="w-full py-3 bg-primary text-white rounded-xl font-bold text-sm hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
+            >
+              <span className="material-symbols-outlined text-sm">add</span>
+              新建章节
+            </button>
+          </div>
+        </div>
+
+        {/* Main: Editor */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {selectedChapter ? (
+            <>
+              {/* Toolbar */}
+              <div className="bg-surface border-b border-outline-variant/10 px-8 py-4 flex items-center justify-between">
+                <div>
+                  <h3 className="font-bold text-on-surface">{selectedChapter.title}</h3>
+                  <p className="text-xs text-stone-400">{editContent.length} 字</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  {error && <span className="text-xs text-red-500">{error}</span>}
+                  {saved && <span className="text-xs text-green-600 flex items-center gap-1"><span className="material-symbols-outlined text-sm">check_circle</span>已保存</span>}
+                  <button
+                    onClick={handleRegenerate}
+                    disabled={generating}
+                    className="px-4 py-2 border border-primary/30 text-primary rounded-xl text-sm font-bold hover:bg-primary/5 transition-colors flex items-center gap-2 disabled:opacity-50"
+                  >
+                    <span className={`material-symbols-outlined text-sm ${generating ? 'animate-spin' : ''}`}>auto_fix_high</span>
+                    {generating ? 'AI 生成中...' : 'AI 重新生成'}
+                  </button>
+                  <button
+                    onClick={handleSave}
+                    disabled={saving}
+                    className="px-4 py-2 bg-primary text-white rounded-xl text-sm font-bold hover:bg-primary/90 transition-colors disabled:opacity-60"
+                  >
+                    {saving ? '保存中...' : '保存'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Editor area */}
+              <div className="flex-1 overflow-y-auto p-8">
+                {generating ? (
+                  <div className="flex flex-col items-center justify-center h-full text-center">
+                    <span className="material-symbols-outlined text-4xl text-primary animate-spin mb-4">auto_fix_high</span>
+                    <p className="text-on-surface-variant">AI 正在根据您的事件生成章节草稿...</p>
                   </div>
                 ) : (
-                  <button
-                    onClick={() => setSelectedChapterId(chapter.id)}
-                    className={`w-full text-left p-4 rounded-2xl border transition-all ${selectedChapterId === chapter.id ? 'bg-white border-[#8B4513] shadow-md' : 'bg-white/50 border-transparent hover:bg-white'} cursor-pointer`}
-                  >
-                    <div className="flex justify-between items-start mb-1">
-                      <span className="text-[10px] font-bold text-stone-400">{chapter.year} 年</span>
-                      <span className="text-[10px] font-bold text-primary">{chapter.status}</span>
-                    </div>
-                    <h4 className="font-bold text-on-surface">{chapter.title}</h4>
-                  </button>
-                )}
-                
-                {isEditingList && (
-                  <button 
-                    onClick={() => handleDeleteChapter(chapter.id)}
-                    className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-red-600 transition-colors"
-                  >
-                    <span className="material-symbols-outlined text-xs">close</span>
-                  </button>
+                  <textarea
+                    className="w-full h-full min-h-[500px] resize-none bg-transparent text-lg leading-[1.9] text-on-surface focus:outline-none font-body"
+                    value={editContent}
+                    onChange={(e) => { setEditContent(e.target.value); setSaved(false); }}
+                    placeholder={selectedChapter.status === 'outline' ? '点击「AI 重新生成」让 AI 基于关联的事件起草这个章节，或直接在此处输入...' : ''}
+                  />
                 )}
               </div>
-            ))}
-          </div>
-
-          <button 
-            onClick={handleAddChapter}
-            className="w-full p-4 rounded-2xl border border-dashed border-stone-300 text-stone-400 flex items-center justify-center gap-2 hover:bg-white transition-all mt-4"
-          >
-            <span className="material-symbols-outlined">add</span>
-            <span className="text-sm font-bold">新增章节</span>
-          </button>
-        </div>
-
-        {/* Editor Area */}
-        <div className="lg:col-span-3 space-y-6">
-          <div className="bg-white rounded-3xl shadow-sm border border-[#8B4513]/5 p-8 min-h-[600px] flex flex-col">
-            <div className="flex justify-between items-center mb-8 border-b border-stone-100 pb-4">
-              <div className="flex items-center gap-4">
-                <span className="material-symbols-outlined text-[#8B4513]">history_edu</span>
-                <h2 className="text-2xl font-bold text-[#8B4513]">{currentChapter.title}</h2>
-                <span className="text-sm text-stone-400 font-medium">{currentChapter.year} 年</span>
-              </div>
-              <div className="flex gap-2">
-                <button onClick={handleSave} disabled={isSaving} className="p-2 text-stone-400 hover:text-primary transition-colors flex items-center gap-1 disabled:opacity-50">
-                  <span className="material-symbols-outlined">{isSaving ? 'sync' : 'save'}</span>
-                  <span className="text-xs font-bold">{isSaving ? '保存中...' : '保存'}</span>
-                </button>
-                <button className="p-2 text-stone-400 hover:text-primary transition-colors">
-                  <span className="material-symbols-outlined">share</span>
-                </button>
-              </div>
-            </div>
-
-            <textarea 
-              className="flex-1 w-full resize-none bg-transparent text-lg leading-relaxed text-on-surface focus:outline-none placeholder:text-stone-300"
-              placeholder="在这里续写您的故事..."
-              value={currentChapter.content}
-              onChange={(e) => handleUpdateChapter(currentChapter.id, { content: e.target.value })}
-            ></textarea>
-
-            <div className="mt-8 pt-6 border-t border-stone-100 flex justify-between items-center">
-              <div className="flex gap-6">
-                <Link to={`/capture?mode=photo&chapterId=${currentChapter.id}`} className="flex items-center gap-1 text-xs font-bold text-stone-500 hover:text-primary transition-colors group no-underline">
-                  <span className="material-symbols-outlined text-sm group-hover:scale-110 transition-transform">photo_library</span>
-                  插入照片
-                </Link>
-                <Link to={`/capture?mode=video&chapterId=${currentChapter.id}`} className="flex items-center gap-1 text-xs font-bold text-stone-500 hover:text-primary transition-colors group no-underline">
-                  <span className="material-symbols-outlined text-sm group-hover:scale-110 transition-transform">videocam</span>
-                  插入视频
-                </Link>
-                <Link to={`/capture?mode=voice&chapterId=${currentChapter.id}`} className="flex items-center gap-1 text-xs font-bold text-stone-500 hover:text-primary transition-colors group no-underline">
-                  <span className="material-symbols-outlined text-sm group-hover:scale-110 transition-transform">audio_file</span>
-                  插入语音
-                </Link>
-                <Link to={`/capture?mode=voice&chapterId=${currentChapter.id}`} className="flex items-center gap-1 text-xs font-bold text-stone-500 hover:text-primary transition-colors group no-underline">
-                  <span className="material-symbols-outlined text-sm group-hover:scale-110 transition-transform">mic</span>
-                  语音转文字
-                </Link>
-              </div>
-              <span className="text-[10px] text-stone-400">最近保存：刚刚</span>
-            </div>
-          </div>
-
-          {/* AI Writing Assistant */}
-          <div className="bg-primary/5 p-6 rounded-2xl border border-primary/10 flex gap-4 items-start">
-            <div className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center shrink-0">
-              <span className="material-symbols-outlined text-sm">auto_fix_high</span>
-            </div>
-            <div className="flex-1">
-              <div className="flex justify-between items-center mb-1">
-                <h4 className="text-sm font-bold text-primary">AI 灵感助手</h4>
-                <button 
-                  onClick={generateInspiration}
-                  disabled={isGeneratingInspiration}
-                  className="text-xs text-primary hover:underline disabled:opacity-50 flex items-center gap-1"
+            </>
+          ) : (
+            <div className="flex-1 flex items-center justify-center text-center p-8">
+              <div>
+                <span className="material-symbols-outlined text-6xl text-stone-200 block mb-6">edit_note</span>
+                <h3 className="text-xl font-bold text-on-surface mb-3">选择或创建章节</h3>
+                <p className="text-on-surface-variant/70 mb-6 max-w-sm">
+                  从左侧选择已有章节，或创建新章节。创建时可以关联已提炼的事件，让 AI 生成草稿。
+                </p>
+                <button
+                  onClick={() => setShowNewChapter(true)}
+                  className="px-8 py-3 bg-primary text-white rounded-2xl font-bold hover:bg-primary/90 transition-colors"
                 >
-                  <span className="material-symbols-outlined text-[14px]">{isGeneratingInspiration ? 'sync' : 'refresh'}</span>
-                  {isGeneratingInspiration ? '生成中...' : '获取灵感'}
+                  创建第一个章节
                 </button>
               </div>
-              <p className="text-xs text-on-surface-variant leading-relaxed whitespace-pre-wrap">
-                {aiInspiration || `您可以尝试描述一下当时${currentChapter.title}期间的一些细节，比如当时的社会环境、您的心情变化等，这些细节会让您的回忆更加丰满。`}
-              </p>
             </div>
-          </div>
+          )}
         </div>
+
+        {/* New chapter modal */}
+        <AnimatePresence>
+          {showNewChapter && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-6"
+              onClick={() => setShowNewChapter(false)}
+            >
+              <motion.div
+                initial={{ scale: 0.95 }}
+                animate={{ scale: 1 }}
+                exit={{ scale: 0.95 }}
+                onClick={e => e.stopPropagation()}
+                className="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-8"
+              >
+                <h3 className="text-xl font-bold text-on-surface mb-6">新建章节</h3>
+                <form onSubmit={handleCreateChapter} className="space-y-5">
+                  <div>
+                    <label className="text-xs font-bold text-stone-400 uppercase tracking-widest block mb-2">章节标题</label>
+                    <input
+                      type="text"
+                      value={newChapterTitle}
+                      onChange={(e) => setNewChapterTitle(e.target.value)}
+                      placeholder="例如：童年岁月"
+                      required
+                      className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary text-on-surface"
+                    />
+                  </div>
+
+                  {events.length > 0 && (
+                    <div>
+                      <label className="text-xs font-bold text-stone-400 uppercase tracking-widest block mb-2">
+                        关联事件（让 AI 基于这些事件起草内容）
+                      </label>
+                      <div className="space-y-2 max-h-48 overflow-y-auto">
+                        {events.map(evt => (
+                          <label key={evt.id} className="flex items-start gap-3 cursor-pointer p-3 rounded-xl hover:bg-stone-50 transition-colors">
+                            <input
+                              type="checkbox"
+                              checked={selectedEventIds.includes(evt.id)}
+                              onChange={(e) => {
+                                if (e.target.checked) setSelectedEventIds(prev => [...prev, evt.id]);
+                                else setSelectedEventIds(prev => prev.filter(id => id !== evt.id));
+                              }}
+                              className="mt-0.5 accent-primary"
+                            />
+                            <div>
+                              <p className="font-bold text-sm text-on-surface">{evt.title}</p>
+                              {evt.summary && <p className="text-xs text-stone-400 mt-0.5">{evt.summary}</p>}
+                            </div>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex gap-3 pt-2">
+                    <button type="button" onClick={() => setShowNewChapter(false)} className="flex-1 py-3 border border-stone-200 rounded-xl text-stone-500 font-bold hover:bg-stone-50">取消</button>
+                    <button type="submit" disabled={generating} className="flex-1 py-3 bg-primary text-white rounded-xl font-bold disabled:opacity-60 flex items-center justify-center gap-2">
+                      {generating ? <><span className="material-symbols-outlined text-sm animate-spin">sync</span>生成中...</> : selectedEventIds.length > 0 ? 'AI 起草章节' : '创建空章节'}
+                    </button>
+                  </div>
+                </form>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );
 }
-

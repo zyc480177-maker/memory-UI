@@ -1,236 +1,151 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { useProject } from '../context/ProjectContext';
 
 export default function Settings() {
-  const [activeTab, setActiveTab] = useState('account');
-  const [apiKey, setApiKey] = useState('');
-  const [showApiKey, setShowApiKey] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
+  const { currentProject } = useProject();
+
+  const [displayName, setDisplayName] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    const savedKey = localStorage.getItem('gemini_api_key');
-    if (savedKey) {
-      setApiKey(savedKey);
-    }
-  }, []);
+    if (user) setDisplayName(user.displayName || '');
+  }, [user]);
 
-  const handleSaveApiKey = () => {
-    setIsSaving(true);
-    localStorage.setItem('gemini_api_key', apiKey);
-    setTimeout(() => {
-      setIsSaving(false);
-      alert('API 密钥已更新');
-    }, 500);
-  };
+  async function handleSave(e: React.FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      const token = localStorage.getItem('memoirs_token');
+      await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/v1/auth/me`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ displayName }),
+      });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function handleLogout() {
+    logout();
+    navigate('/login');
+  }
+
+  const initial = user?.displayName?.[0] ?? user?.email?.[0] ?? '?';
 
   return (
-    <main className="pt-32 pb-20 px-6 md:px-[8.5rem] max-w-7xl mx-auto min-h-screen">
-      <div className="parchment-texture"></div>
-      
+    <main className="pt-24 pb-20 px-6 md:px-[8.5rem] max-w-4xl mx-auto min-h-screen bg-[#F5F0E8]">
       <header className="mb-12">
         <h1 className="text-4xl font-black text-on-surface tracking-tight mb-2">系统设置</h1>
-        <p className="text-on-surface-variant font-medium">管理您的账号、AI 模型偏好及 API 接口</p>
+        <p className="text-on-surface-variant/70">管理您的账号信息</p>
       </header>
 
-      <div className="flex flex-col lg:flex-row gap-12">
-        {/* Sidebar Tabs */}
-        <aside className="w-full lg:w-64 flex flex-col gap-2">
-          <button 
-            onClick={() => setActiveTab('account')}
-            className={`flex items-center gap-3 px-6 py-4 rounded-xl font-bold transition-all ${activeTab === 'account' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-on-surface-variant hover:bg-surface-container'}`}
+      <div className="space-y-6">
+        {/* Account card */}
+        <div className="bg-white rounded-3xl shadow-sm border border-outline-variant/10 p-8">
+          <div className="flex items-center gap-6 pb-8 mb-8 border-b border-stone-100">
+            <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center text-3xl font-black text-primary border-4 border-white shadow-md">
+              {initial.toUpperCase()}
+            </div>
+            <div>
+              <h3 className="text-xl font-bold text-on-surface">{user?.displayName || user?.email}</h3>
+              <p className="text-sm text-stone-400 mt-0.5">{user?.email}</p>
+              <span className="mt-2 inline-block text-[10px] px-2 py-0.5 bg-primary/10 text-primary rounded-full font-bold">
+                Owner · Private Alpha
+              </span>
+            </div>
+          </div>
+
+          <form onSubmit={handleSave} className="space-y-5 max-w-md">
+            <div>
+              <label className="text-xs font-bold text-stone-400 uppercase tracking-widest block mb-2">显示名称</label>
+              <input
+                type="text"
+                value={displayName}
+                onChange={e => setDisplayName(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary text-on-surface transition-all"
+                placeholder="请输入显示名称"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-bold text-stone-400 uppercase tracking-widest block mb-2">电子邮箱</label>
+              <input
+                type="email"
+                value={user?.email ?? ''}
+                disabled
+                className="w-full px-4 py-3 rounded-xl border border-stone-100 bg-stone-50 text-stone-400 cursor-not-allowed"
+              />
+              <p className="text-xs text-stone-300 mt-1">邮箱由管理员配置，无法修改</p>
+            </div>
+            <div className="flex items-center gap-3 pt-2">
+              <button
+                type="submit"
+                disabled={saving}
+                className="px-6 py-3 bg-primary text-white rounded-xl font-bold hover:bg-primary/90 transition-colors disabled:opacity-60"
+              >
+                {saving ? '保存中...' : '保存更改'}
+              </button>
+              {saved && (
+                <span className="text-sm text-green-600 flex items-center gap-1">
+                  <span className="material-symbols-outlined text-sm">check_circle</span>
+                  已保存
+                </span>
+              )}
+            </div>
+          </form>
+        </div>
+
+        {/* Current project info */}
+        {currentProject && (
+          <div className="bg-white rounded-3xl shadow-sm border border-outline-variant/10 p-8">
+            <h3 className="text-lg font-bold text-on-surface mb-4 flex items-center gap-2">
+              <span className="material-symbols-outlined text-primary">folder_open</span>
+              当前项目
+            </h3>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between items-center py-2 border-b border-stone-50">
+                <span className="text-stone-400">项目名称</span>
+                <span className="font-bold text-on-surface">{currentProject.title}</span>
+              </div>
+              {currentProject.subtitle && (
+                <div className="flex justify-between items-center py-2 border-b border-stone-50">
+                  <span className="text-stone-400">副标题</span>
+                  <span className="text-on-surface">{currentProject.subtitle}</span>
+                </div>
+              )}
+              <div className="flex justify-between items-center py-2 border-b border-stone-50">
+                <span className="text-stone-400">叙述视角</span>
+                <span className="text-on-surface">{currentProject.defaultNarrativeVoice === 'first_person' ? '第一人称' : '第三人称'}</span>
+              </div>
+              <div className="flex justify-between items-center py-2">
+                <span className="text-stone-400">创建时间</span>
+                <span className="text-on-surface">{new Date(currentProject.createdAt).toLocaleDateString('zh-CN')}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Danger zone */}
+        <div className="bg-white rounded-3xl shadow-sm border border-red-100 p-8">
+          <h3 className="text-lg font-bold text-red-500 mb-4 flex items-center gap-2">
+            <span className="material-symbols-outlined">warning</span>
+            账号操作
+          </h3>
+          <p className="text-sm text-stone-400 mb-5">退出后需重新输入账号密码才能登录。</p>
+          <button
+            onClick={handleLogout}
+            className="px-6 py-3 border border-red-200 text-red-500 rounded-xl font-bold hover:bg-red-50 transition-colors flex items-center gap-2"
           >
-            <span className="material-symbols-outlined">person</span>
-            账号信息
+            <span className="material-symbols-outlined text-sm">logout</span>
+            退出登录
           </button>
-          <button 
-            onClick={() => setActiveTab('model')}
-            className={`flex items-center gap-3 px-6 py-4 rounded-xl font-bold transition-all ${activeTab === 'model' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-on-surface-variant hover:bg-surface-container'}`}
-          >
-            <span className="material-symbols-outlined">psychology</span>
-            大模型配置
-          </button>
-          <button 
-            onClick={() => setActiveTab('api')}
-            className={`flex items-center gap-3 px-6 py-4 rounded-xl font-bold transition-all ${activeTab === 'api' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-on-surface-variant hover:bg-surface-container'}`}
-          >
-            <span className="material-symbols-outlined">api</span>
-            API 密钥
-          </button>
-          <button 
-            onClick={() => setActiveTab('privacy')}
-            className={`flex items-center gap-3 px-6 py-4 rounded-xl font-bold transition-all ${activeTab === 'privacy' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-on-surface-variant hover:bg-surface-container'}`}
-          >
-            <span className="material-symbols-outlined">security</span>
-            隐私与安全
-          </button>
-        </aside>
-
-        {/* Content Area */}
-        <div className="flex-1 bg-surface-container-low rounded-3xl p-8 md:p-12 border border-outline-variant/10 shadow-sm">
-          {activeTab === 'account' && (
-            <section className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <div className="flex items-center gap-6 pb-8 border-b border-outline-variant/10">
-                <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center text-4xl text-primary font-black border-4 border-white shadow-md">
-                  张
-                </div>
-                <div>
-                  <h3 className="text-2xl font-bold text-on-surface">张建国</h3>
-                  <p className="text-on-surface-variant">高级会员 · 档案守护者</p>
-                  <button className="mt-2 text-sm text-primary font-bold hover:underline">更换头像</button>
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-outline uppercase tracking-widest">电子邮箱</label>
-                  <input type="email" className="w-full bg-surface-container px-4 py-3 rounded-xl border border-outline-variant/20 focus:border-primary outline-none transition-all" defaultValue="zhang.jg@example.com" />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-outline uppercase tracking-widest">手机号码</label>
-                  <input type="tel" className="w-full bg-surface-container px-4 py-3 rounded-xl border border-outline-variant/20 focus:border-primary outline-none transition-all" defaultValue="+86 138 **** 5678" />
-                </div>
-              </div>
-
-              <div className="pt-6">
-                <button className="bg-primary text-white px-8 py-3 rounded-full font-bold shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all">
-                  保存更改
-                </button>
-              </div>
-            </section>
-          )}
-
-          {activeTab === 'model' && (
-            <section className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <div className="space-y-4">
-                <h3 className="text-xl font-bold text-on-surface">AI 写作助手配置</h3>
-                <p className="text-on-surface-variant">选择最适合您叙事风格的大语言模型</p>
-              </div>
-
-              <div className="grid grid-cols-1 gap-4">
-                <div className="p-6 bg-primary/5 border-2 border-primary rounded-2xl flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <span className="material-symbols-outlined text-3xl text-primary">auto_awesome</span>
-                    <div>
-                      <h4 className="font-bold text-on-surface">Gemini 1.5 Pro (推荐)</h4>
-                      <p className="text-sm text-on-surface-variant">最强推理能力，适合深度文学润色与逻辑整理</p>
-                    </div>
-                  </div>
-                  <span className="material-symbols-outlined text-primary">check_circle</span>
-                </div>
-                <div className="p-6 bg-surface-container rounded-2xl flex items-center justify-between hover:bg-surface-container-high transition-colors cursor-pointer">
-                  <div className="flex items-center gap-4">
-                    <span className="material-symbols-outlined text-3xl text-outline">bolt</span>
-                    <div>
-                      <h4 className="font-bold text-on-surface">Gemini 1.5 Flash</h4>
-                      <p className="text-sm text-on-surface-variant">响应极快，适合快速记录与简单纠错</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-4 pt-4">
-                <label className="text-xs font-bold text-outline uppercase tracking-widest">叙事风格偏好</label>
-                <div className="flex flex-wrap gap-3">
-                  {['纪实文学', '散文诗化', '平铺直叙', '怀旧复古', '幽默风趣'].map(style => (
-                    <button key={style} className={`px-4 py-2 rounded-full text-sm font-bold border transition-all ${style === '怀旧复古' ? 'bg-secondary text-white border-secondary' : 'border-outline-variant text-on-surface-variant hover:border-primary'}`}>
-                      {style}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </section>
-          )}
-
-          {activeTab === 'api' && (
-            <section className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <div className="space-y-4">
-                <h3 className="text-xl font-bold text-on-surface">API 密钥管理</h3>
-                <p className="text-on-surface-variant">配置您的专属 API 密钥以启用高级 AI 功能</p>
-              </div>
-
-              <div className="space-y-6">
-                <div className="space-y-3">
-                  <label className="text-xs font-bold text-outline uppercase tracking-widest flex justify-between">
-                    Google AI Studio API Key
-                    <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline cursor-pointer">如何获取？</a>
-                  </label>
-                  <div className="relative">
-                    <input 
-                      type={showApiKey ? "text" : "password"} 
-                      className="w-full bg-surface-container px-4 py-4 rounded-xl border border-outline-variant/20 font-mono text-sm focus:border-primary outline-none" 
-                      placeholder="AIzaSyA-xxxxxxxxxxxxxxxxxxxx"
-                      value={apiKey}
-                      onChange={(e) => setApiKey(e.target.value)}
-                    />
-                    <button 
-                      onClick={() => setShowApiKey(!showApiKey)}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-outline hover:text-primary"
-                    >
-                      <span className="material-symbols-outlined">{showApiKey ? 'visibility_off' : 'visibility'}</span>
-                    </button>
-                  </div>
-                </div>
-
-                <div className="p-4 bg-secondary/10 rounded-xl border border-secondary/20 flex gap-4">
-                  <span className="material-symbols-outlined text-secondary">info</span>
-                  <p className="text-sm text-secondary-container leading-relaxed">
-                    您的 API 密钥将仅保存在本地浏览器中，用于直接与模型服务通信，确保您的隐私数据绝不外泄。
-                  </p>
-                </div>
-              </div>
-
-              <div className="pt-6 flex gap-4">
-                <button 
-                  onClick={handleSaveApiKey}
-                  disabled={isSaving}
-                  className="bg-primary text-white px-8 py-3 rounded-full font-bold shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all disabled:opacity-70"
-                >
-                  {isSaving ? '更新中...' : '更新密钥'}
-                </button>
-              </div>
-            </section>
-          )}
-
-          {activeTab === 'privacy' && (
-            <section className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <div className="space-y-4">
-                <h3 className="text-xl font-bold text-on-surface">隐私与安全</h3>
-                <p className="text-on-surface-variant">管理您的数据隐私和本地存储设置</p>
-              </div>
-
-              <div className="space-y-6">
-                <div className="flex items-center justify-between p-6 bg-surface-container rounded-2xl border border-outline-variant/10">
-                  <div>
-                    <h4 className="font-bold text-on-surface mb-1">本地数据加密</h4>
-                    <p className="text-sm text-on-surface-variant">所有档案数据在本地存储时进行加密处理</p>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" className="sr-only peer" defaultChecked />
-                    <div className="w-11 h-6 bg-outline-variant/30 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                  </label>
-                </div>
-
-                <div className="flex items-center justify-between p-6 bg-surface-container rounded-2xl border border-outline-variant/10">
-                  <div>
-                    <h4 className="font-bold text-on-surface mb-1">云端同步备份</h4>
-                    <p className="text-sm text-on-surface-variant">自动将您的档案安全备份至云端</p>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" className="sr-only peer" />
-                    <div className="w-11 h-6 bg-outline-variant/30 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                  </label>
-                </div>
-
-                <div className="pt-6 border-t border-outline-variant/10">
-                  <h4 className="font-bold text-error mb-4">危险操作</h4>
-                  <button className="px-6 py-3 border border-error text-error rounded-xl font-bold hover:bg-error/5 transition-colors flex items-center gap-2">
-                    <span className="material-symbols-outlined">delete_forever</span>
-                    清除所有本地数据
-                  </button>
-                  <p className="text-xs text-on-surface-variant mt-2">此操作将永久删除您设备上的所有档案和设置，请谨慎操作。</p>
-                </div>
-              </div>
-            </section>
-          )}
         </div>
       </div>
     </main>
