@@ -9,13 +9,13 @@ router.use(requireAuth);
 
 // ─── Projects ─────────────────────────────────────────────────────────────────
 
-router.get('/', async (req: Request, res: Response) => {
+router.get('/projects', async (req: Request, res: Response) => {
   const { userId } = req as AuthRequest;
   const projects = await projectRepo.findByOwner(userId);
   res.json({ projects });
 });
 
-router.post('/', async (req: Request, res: Response) => {
+router.post('/projects', async (req: Request, res: Response) => {
   const { userId } = req as AuthRequest;
   const schema = z.object({
     title: z.string().min(1, '项目标题不能为空').max(100),
@@ -47,7 +47,7 @@ router.post('/', async (req: Request, res: Response) => {
   res.status(201).json({ project: { ...project, primarySubjectId: subject?.id }, subject });
 });
 
-router.get('/:id', async (req: Request, res: Response) => {
+router.get('/projects/:id', async (req: Request, res: Response) => {
   const { userId } = req as AuthRequest;
   const project = await projectRepo.findById(req.params.id, userId);
   if (!project) { res.status(404).json({ error: '项目不存在' }); return; }
@@ -59,7 +59,7 @@ router.get('/:id', async (req: Request, res: Response) => {
   res.json({ project, subject });
 });
 
-router.patch('/:id', async (req: Request, res: Response) => {
+router.patch('/projects/:id', async (req: Request, res: Response) => {
   const { userId } = req as AuthRequest;
   const schema = z.object({
     title: z.string().min(1).max(100).optional(),
@@ -78,7 +78,7 @@ router.patch('/:id', async (req: Request, res: Response) => {
 
 // ─── Subject ──────────────────────────────────────────────────────────────────
 
-router.get('/:id/subject', async (req: Request, res: Response) => {
+router.get('/projects/:id/subject', async (req: Request, res: Response) => {
   const { userId } = req as AuthRequest;
   const project = await projectRepo.findById(req.params.id, userId);
   if (!project) { res.status(404).json({ error: '项目不存在' }); return; }
@@ -87,7 +87,7 @@ router.get('/:id/subject', async (req: Request, res: Response) => {
   res.json({ subject });
 });
 
-router.put('/:id/subject', async (req: Request, res: Response) => {
+router.put('/projects/:id/subject', async (req: Request, res: Response) => {
   const { userId } = req as AuthRequest;
   const project = await projectRepo.findById(req.params.id, userId);
   if (!project) { res.status(404).json({ error: '项目不存在' }); return; }
@@ -117,7 +117,7 @@ router.put('/:id/subject', async (req: Request, res: Response) => {
 
 // ─── Export ───────────────────────────────────────────────────────────────────
 
-router.post('/:id/export', async (req: Request, res: Response) => {
+router.post('/projects/:id/export', async (req: Request, res: Response) => {
   const { userId } = req as AuthRequest;
   const project = await projectRepo.findById(req.params.id, userId);
   if (!project) { res.status(404).json({ error: '项目不存在' }); return; }
